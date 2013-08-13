@@ -1,7 +1,9 @@
 Navigation
 ==========
 
-jQuery plugin on top of "jquery-address" to rapidly implement full Ajax navigation.
+jQuery plugin on top of "jQuery Address" to rapidly implement full Ajax navigation.
+
+[jQuery Address](https://github.com/asual/jquery-address)
 
 
 Default options
@@ -73,3 +75,23 @@ Default options
   };
 
 ```
+
+
+Events
+------
+
+### change.navigation
+
+### changed.navigation
+
+### load.navigation
+
+### loaded.navigation
+
+### created.navigation
+
+### updated.navigation
+
+### shown.navigation
+
+### hidden.navigation
