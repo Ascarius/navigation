@@ -13,8 +13,6 @@
   function Navigation (element, options) {
     this.$element    = $(element);
     this.options     = $.extend({}, Navigation.DEFAULTS, options);
-    // Remove trailing slash
-    this.options.baseUrl = this.options.baseUrl.replace(/\/$/, '');
 
     this.initialized = false;
     this.reloaded    = false;
@@ -205,24 +203,29 @@
 
     error: function (e, xhr, status, error) {
       this.log('error', arguments);
-      this.$element.trigger('error.navigation', [path, xhr, status, error]);
+      this.$element.trigger('error.navigation', [e, xhr, status, error]);
     },
 
     updateNav: function (path, $context) {
-      var options = this.options;
+      var options = this.options,
+          $links, url;
 
       if (!this.initialized) {
         return;
       }
 
       $context = $context || document;
+      $links   = $context === document
+        ? $(this.options.navSelector)
+        : $('a', $context).filter(this.options.navSelector);
+      url      = options.baseUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
 
       if (typeof options.updateNav == 'function') {
-        options.updateNav.call($('a', $context).filter(this.options.navSelector), options.baseUrl + path);
+        options.updateNav.call($links, url);
       } else {
-        $(options.navSelector, $context).each(function() {
+        $links.each(function() {
           var $this = $(this);
-          if ($this.attr('href') == options.baseUrl + path) {
+          if ($this.attr('href') == url) {
             $this.parent().addClass(options.navActiveClass);
           } else {
             $this.parent().removeClass(options.navActiveClass);
