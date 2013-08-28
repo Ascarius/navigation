@@ -13,6 +13,8 @@
   function Navigation (element, options) {
     this.$element    = $(element);
     this.options     = $.extend({}, Navigation.DEFAULTS, options);
+    // Remove trailing slash
+    this.options.baseUrl = this.options.baseUrl.replace(/\/$/, '');
 
     this.initialized = false;
     this.reloaded    = false;
