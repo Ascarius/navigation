@@ -13,6 +13,7 @@
   function Navigation (element, options) {
     this.$element    = $(element);
     this.options     = $.extend({}, Navigation.DEFAULTS, options);
+
     this.initialized = false;
     this.reloaded    = false;
     this.states      = {};
@@ -68,7 +69,7 @@
         // - 'text'
         // - 'prepend'
         // - 'append'
-        // - function(string key, object content, callback updated)
+        // - function(string html, string key, object content, callback updated)
         update: 'html',
 
         // Show method
@@ -135,18 +136,13 @@
         }
       });
 
-      // $(self.options.navSelector).address().css('color', 'red');
-
-      // this.$element.on('updated.navigation', '*', function () {
-      //   $(self.options.navSelector, this).address().css('color', 'red');
-      // });
     },
 
     change: function (e) {
       var path = e.path;
 
-      this.$element.trigger('change.navigation', e);
       this.log('change', path);
+      this.$element.trigger('change.navigation', e);
 
       if (!this.initialized) {
 
@@ -165,8 +161,8 @@
 
       } else {
 
+        this.log('load', path);
         this.$element.trigger('load.navigation', path);
-        this.log('@ load', path);
 
         $.ajax({
           url: $.address.state() + path,
@@ -195,32 +191,34 @@
       }
 
       if (xhr) {
-        this.$element.trigger('loaded.navigation', [path, data, status, xhr]);
         this.log('loaded', path);
+        this.$element.trigger('loaded.navigation', [path, data, status, xhr]);
       }
 
       if (this.initialized) {
-        this.$element.trigger('changed.navigation', [path, data, status, xhr]);
         this.log('changed', path);
+        this.$element.trigger('changed.navigation', [path, data, status, xhr]);
       }
     },
 
     error: function (e, xhr, status, error) {
-      this.$element.trigger('error.navigation', [path, xhr, status, error]);
       this.log('error', arguments);
+      this.$element.trigger('error.navigation', [path, xhr, status, error]);
     },
 
-    updateNav: function (path) {
+    updateNav: function (path, $context) {
       var options = this.options;
 
       if (!this.initialized) {
         return;
       }
 
+      $context = $context || document;
+
       if (typeof options.updateNav == 'function') {
-        options.updateNav(options.baseUrl + path);
+        options.updateNav.call($('a', $context).filter(this.options.navSelector), options.baseUrl + path);
       } else {
-        $(this.options.navSelector).each(function() {
+        $(options.navSelector, $context).each(function() {
           var $this = $(this);
           if ($this.attr('href') == options.baseUrl + path) {
             $this.parent().addClass(options.navActiveClass);
@@ -237,7 +235,7 @@
           $content,
           title;
 
-      this.log('saveContents', path);
+      this.log('save', path);
 
       if (data !== undefined) {
 
@@ -267,7 +265,7 @@
 
             self.setStateContent(path, key, $newContent.html());
           } else {
-            self.log('! no '+key+' in '+path);
+            self.log(path+' has no '+key);
           }
         });
       }
@@ -278,7 +276,7 @@
           options = this.options,
           $content;
 
-      this.log('updateContents', path);
+      this.log('update', path);
 
       // Title
       this.$title.html(this.getStateContent(path, 'title'));
@@ -299,13 +297,13 @@
           create = content.create !== undefined ? content.create : 'append',
           $currentParent, $newParent,
           created = function () {
-            $content.trigger('created.navigation');
             self.log('created', key);
+            $content.trigger('created.navigation');
           };
 
       if (create) {
 
-        this.log('_createContent', key);
+        this.log('create', key);
 
         if (typeof create == 'function') {
           create.call($content, key, content, created);
@@ -348,13 +346,14 @@
           html     = this.getStateContent(path, key),
           $content = this.getContentElement(key),
           updated  = function () {
-            $content.trigger('updated.navigation');
             self.log('updated', key);
+            self.updateNav(path, $content);
+            $content.trigger('updated.navigation');
           };
 
       if (update) {
 
-        this.log('_updateContent', path, key);
+        this.log('update', path, key);
 
         if (typeof update == 'function') {
           update.call($content, html, key, content, updated);
@@ -398,16 +397,16 @@
           show     = content.show !== undefined ? content.show : 'fade',
           $content = this.getContentElement(key),
           shown    = function () {
-            $content.trigger('shown.navigation');
             self.log('shown', key);
+            $content.trigger('shown.navigation');
           };
 
       if (!$content) {
         return;
       }
 
-      $content.trigger('show.navigation');
       this.log('show', key);
+      $content.trigger('show.navigation');
 
       if (show) {
         if (typeof show == 'function') {
@@ -435,16 +434,16 @@
           hide     = content.hide !== undefined ? content.hide : 'fade',
           $content = this.getContentElement(key),
           hidden   = function () {
-            $content.trigger('hidden.navigation');
             self.log('hidden', key);
+            $content.trigger('hidden.navigation');
           };
 
       if (!$content) {
         return;
       }
 
+      this.log('hide', key);
       $content.trigger('hide.navigation');
-      this.log('_hideContent', key);
 
       if (hide) {
         if (typeof hide == 'function') {
@@ -480,7 +479,6 @@
     },
 
     setStateContent: function (path, key, value) {
-      this.log('setStateContent', path, key)
       if (this.states[path] === undefined) {
         this.states[path] = {};
       }
@@ -501,7 +499,6 @@
     },
 
     setContentElement: function (key, $element) {
-      this.log('setContentElement', key)
       this.$contents[key] = $element;
       return this;
     },
