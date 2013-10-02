@@ -2,36 +2,29 @@
 
   "use strict";
 
+  if (!window.History || !History.enabled) {
+    throw new Error('History.js is required');
+  }
+
 
   // NAVIGATION CLASS DEFINITION
   // ===========================
 
-  if ($.address === undefined) {
-    return;
-  }
-
-  function Navigation (element, options) {
-    this.$element    = $(element);
+  function Navigation (options) {
+    this.$window     = $(window);
+    this.$body       = $(document.body);
     this.options     = $.extend({}, Navigation.DEFAULTS, options);
 
-    this.initialized = false;
-    this.reloaded    = false;
-    this.states      = {};
-    this.$contents   = {};
-    this.$title      = $('title');
+    this.initialized  = false;
+    this.states       = {};
+    this.$contents    = {};
+    this.$title       = $('title');
 
-    $.address
-      .state(this.options.baseUrl)
-      .init($.proxy(this.init, this))
-      .change($.proxy(this.change, this))
-    ;
+    $($.proxy(this.init, this));
+    $(window).on('statechange', $.proxy(this.change, this));
   };
 
   Navigation.DEFAULTS = {
-
-    // Base URL
-    // - string
-    baseUrl : '/',
 
     // Nav selector
     // - string
@@ -70,7 +63,7 @@
         // - 'prepend'
         // - 'append'
         // - function(string html, string key, object content, callback updated)
-        update: 'html',
+        update: 'fade',
 
         // Show method
         // - undefined, true, 'fade' (default)
@@ -98,127 +91,104 @@
       };
     },
 
-    init: function (e) {
-      var self = this;
+    init: function () {
+      var self  = this,
+          state = History.getState(),
+          url   = state.url;
 
-      this.log('init');
+      self.log('init');
 
-      self.$element.on('click', self.options.navSelector, function (e) {
-        var target = e.currentTarget;
+      self.$body.on('click', self.options.navSelector, function (e) {
+        var $this = $(e.currentTarget),
+            url = $this.prop('href'),
+            title = $this.prop('');
 
         if (e.shiftKey || e.ctrlKey || e.metaKey || e.which == 2) {
             return true;
         }
 
-        if ($(target).is('a')) {
-          var value = /address:/.test($(target).attr('rel'))
-              ? $(target).attr('rel').split('address:')[1].split(' ')[0]
-              : $.address.state() !== undefined && !/^\/?$/.test($.address.state())
-                ? $(target).attr('href').replace(new RegExp('^(.*' + $.address.state() + '|\\.)'), '')
-                : $(target).attr('href').replace(/^(#\!?|\.)/, '');
-
+        if ($this.is('a')) {
           e.preventDefault();
-          $.address.value(value);
+          History.pushState(null, null, url);
         }
+
       });
 
-      self.$element.on('submit', self.options.navSelector, function (e) {
-        var target = e.currentTarget,
-            action, value;
+      this.handler(url);
 
-        if ($(target).is('form')) {
-            e.preventDefault();
-            action = $(target).attr('action');
-            value = (action.indexOf('?') != -1
-              ? action.replace(/&$/, '')
-              : action + '?') + $(target).serialize();
-            $.address.value(value);
-        }
-      });
+      this.initialized = true;
+      this.log('initialized');
 
     },
 
-    change: function (e) {
-      var path = e.path;
+    change: function () {
+      var state = History.getState(),
+          url   = state.url;
 
-      this.log('change', path);
-      this.$element.trigger('change.navigation', e);
+      this.log('change');
+      this.$body.trigger('change.navigation', url);
 
-      if (!this.initialized) {
+      if (this.hasState(url)) {
 
-        this.initialized = true;
-        this.log('initialized', path);
-
-      } else if (!this.reloaded) {
-
-        this.handler(e);
-        this.reloaded = true;
-        this.log('reloaded', path);
-
-      } else if (this.hasState(path)) {
-
-        this.handler(e);
+        this.handler(url);
 
       } else {
 
-        this.log('load', path);
-        this.$element.trigger('load.navigation', path);
+        this.log('load', url);
+        this.$body.trigger('load.navigation', url);
 
         $.ajax({
-          url: $.address.state() + path,
+          url: url,
           dataType: 'html',
-          success: $.proxy(this.handler, this, e),
-          error: $.proxy(this.error, this, e)
+          success: $.proxy(this.handler, this, url),
+          error: $.proxy(this.error, this, url)
         });
 
       }
     },
 
-    handler: function (e, data, status, xhr) {
-      var path = e.path;
-
-      this.log('handle', path);
+    handler: function (url, data, status, xhr) {
+      this.log('handle', url);
 
       if (data) {
-        this.saveContents(e.path, data);
-      } else if (!this.reloaded) {
-        this.saveContents(e.path, document);
-      }
-
-      if (this.initialized && this.reloaded) {
-        this.updateNav(path);
-        this.updateContents(path);
-      }
-
-      if (xhr) {
-        this.log('loaded', path);
-        this.$element.trigger('loaded.navigation', [path, data, status, xhr]);
+        this.saveContents(url, data);
+      } else if (!this.initialized) {
+        this.saveContents(url, document);
       }
 
       if (this.initialized) {
-        this.log('changed', path);
-        this.$element.trigger('changed.navigation', [path, data, status, xhr]);
+        this.updateNav(url);
+        this.updateContents(url);
+      }
+
+      if (xhr) {
+        this.log('loaded', url);
+        this.$body.trigger('loaded.navigation', [url, data, status, xhr]);
+      }
+
+      if (this.initialized) {
+        this.log('changed', url);
+        this.$body.trigger('changed.navigation', [url, data, status, xhr]);
       }
     },
 
     error: function (e, xhr, status, error) {
       this.log('error', arguments);
-      this.$element.trigger('error.navigation', [e, xhr, status, error]);
+      this.$body.trigger('error.navigation', [e, xhr, status, error]);
     },
 
-    updateNav: function (path, $context) {
+    updateNav: function (url, $context) {
       var options = this.options,
-          $links, url;
+          $links;
 
       if (!this.initialized) {
         return;
       }
 
-      $context = $context || document;
-      $links   = $context === document
+      $context = $context || undefined;
+      $links   = $context === undefined
         ? $(this.options.navSelector)
         : $('a', $context).filter(this.options.navSelector);
-      url      = options.baseUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
 
       if (typeof options.updateNav == 'function') {
         options.updateNav.call($links, url);
@@ -234,21 +204,21 @@
       }
     },
 
-    saveContents: function (path, data) {
+    saveContents: function (url, data) {
       var self = this,
           options = this.options,
           $content,
           title;
 
-      this.log('save', path);
+      this.log('save', url);
 
       if (data !== undefined) {
 
         // Title
         if (title = $('title', data).html()) {
-          this.setStateContent(path, 'title', title);
+          this.setStateContent(url, 'title', title);
         } else if (title = data.match('<title>(.*)</title>')) {
-          this.setStateContent(path, 'title', title[1]);
+          this.setStateContent(url, 'title', title[1]);
         }
 
         // Contents
@@ -264,34 +234,37 @@
               $currentContent = self._createContent(key, content, $newContent);
             }
 
+            // Init
+            self._initContent(key, content, $currentContent);
+
             if (!self.hasContentElement(key)) {
               self.setContentElement(key, $currentContent);
             }
 
-            self.setStateContent(path, key, $newContent.html());
+            self.setStateContent(url, key, $newContent.html());
           } else {
-            self.log(path+' has no '+key);
+            self.log(url+' has no '+key);
           }
         });
       }
     },
 
-    updateContents: function (path) {
+    updateContents: function (url) {
       var self = this,
           options = this.options,
           $content;
 
-      this.log('update', path);
+      this.log('update', url);
 
       // Title
-      this.$title.html(this.getStateContent(path, 'title'));
+      this.$title.html(this.getStateContent(url, 'title'));
 
       // Contents
       $.each(options.contents, function (key, content) {
-        if (self.hasStateContent(path, key)) {
-          self._updateContent(path, key, content);
+        if (self.hasStateContent(url, key)) {
+          self._updateContent(url, key, content);
         } else if (self.hasContentElement(key)) {
-          self._hideContent(path, key, content);
+          self._hideContent(url, key, content);
         }
       });
 
@@ -345,26 +318,44 @@
       return $content;
     },
 
-    _updateContent: function (path, key, content) {
+    _initContent: function (key, content, $content) {
       var self = this,
-          update   = content.update !== undefined ? content.update : 'html',
-          html     = this.getStateContent(path, key),
+          initialized = function () {
+            self.log('initialized', key);
+            $content.trigger('initialized.navigation')
+          };
+      if (typeof content.init == 'function') {
+        self.log('initialize', key);
+        content.init.call($content, key, content, initialized);
+      }
+    },
+
+    _updateContent: function (url, key, content) {
+      var self = this,
+          update   = content.update !== undefined ? content.update : 'fade',
+          html     = this.getStateContent(url, key),
           $content = this.getContentElement(key),
           updated  = function () {
             self.log('updated', key);
-            self.updateNav(path, $content);
+            self.updateNav(url, $content);
             $content.trigger('updated.navigation');
           };
 
       if (update) {
 
-        this.log('update', path, key);
+        this.log('update', url, key);
 
         if (typeof update == 'function') {
           update.call($content, html, key, content, updated);
         } else {
           switch (update) {
             case true:
+            case 'fade':
+              $content.fadeTo(400, 0, function () {
+                $content.html(html);
+                $content.fadeTo(400, 1, updated);
+              });
+              break;
             case 'html':
               $content.html(html);
               updated();
@@ -372,12 +363,6 @@
             case 'text':
               $content.text(html);
               updated();
-              break;
-            case 'fade':
-              $content.fadeTo(400, 0, function () {
-                $content.html(html);
-                $content.fadeTo(400, 1, updated);
-              });
               break;
             case 'prepend':
               $content.prepend(html);
@@ -434,7 +419,7 @@
 
     },
 
-    _hideContent: function (path, key, content) {
+    _hideContent: function (url, key, content) {
       var self = this,
           hide     = content.hide !== undefined ? content.hide : 'fade',
           $content = this.getContentElement(key),
@@ -470,37 +455,37 @@
       }
     },
 
-    setState: function (path, state) {
-      this.states[path] = state;
+    setState: function (url, state) {
+      this.states[url] = state;
       return this;
     },
 
-    getState: function (path) {
-      return this.states[path];
+    getState: function (url) {
+      return this.states[url];
     },
 
-    hasState: function (path) {
-      return this.states[path] !== undefined;
+    hasState: function (url) {
+      return this.states[url] !== undefined;
     },
 
-    setStateContent: function (path, key, value) {
-      if (this.states[path] === undefined) {
-        this.states[path] = {};
+    setStateContent: function (url, key, value) {
+      if (this.states[url] === undefined) {
+        this.states[url] = {};
       }
-      this.states[path][key] = value;
+      this.states[url][key] = value;
       return this;
     },
 
-    getStateContent: function (path, key) {
-      if (this.states[path]) {
-        return this.states[path][key];
+    getStateContent: function (url, key) {
+      if (this.states[url]) {
+        return this.states[url][key];
       }
       return undefined;
     },
 
-    hasStateContent: function (path, key) {
-      return this.states[path] !== undefined
-          && this.states[path][key] !== undefined;
+    hasStateContent: function (url, key) {
+      return this.states[url] !== undefined
+          && this.states[url][key] !== undefined;
     },
 
     setContentElement: function (key, $element) {
@@ -522,13 +507,15 @@
   // NAVIGATION PLUGIN DEFINITION
   // ============================
 
-  $.fn.navigation = function (option) {
-    var $this   = $(this),
+  var old = $.navigation;
+
+  $.navigation = function (option) {
+    var $this   = $(document.body),
         data    = $this.data('wxr.navigation'),
         options = typeof option == 'object' && option;
 
     if (!data) {
-      $this.data('wxr.navigation', (data = new Navigation(this, options)));
+      $this.data('wxr.navigation', (data = new Navigation(options)));
     }
   };
 
@@ -536,8 +523,8 @@
   // NAVIGATION NO CONFLICT
   // ======================
 
-  $.fn.navigation.noConflict = function () {
-    $.fn.navigation = old;
+  $.navigation.noConflict = function () {
+    $.navigation = old;
     return this;
   };
 

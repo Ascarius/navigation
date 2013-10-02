@@ -1,5 +1,2 @@
-
-build:
-	uglifyjs -nc ./navigation.js > ./navigation.min.js
-
-.PHONY: build
+minimize:
+	uglifyjs -nc navigation.js > navigation.min.js
