@@ -1,9 +1,9 @@
 Navigation
 ==========
 
-jQuery plugin on top of "jQuery Address" to rapidly implement full Ajax navigation.
+jQuery plugin on top of History.js ro rapidely implement full Ajax navigation.
 
-[jQuery Address](https://github.com/asual/jquery-address)
+[History.js](https://github.com/browserstate/history.js/)
 
 
 Default options

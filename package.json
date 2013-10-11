@@ -1,0 +1,27 @@
+{
+  "name": "navigation",
+  "version": "2.0.1",
+  "description": "jQuery plugin on top of History.js ro rapidely implement full Ajax navigation.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Ascarius/navigation.git"
+  },
+  "keywords": [
+    "jquery",
+    "history",
+    "ajax",
+    "navigation"
+  ],
+  "author": {
+    "name": "Lionel Gaillard",
+    "url": "http://wxrstudios.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Ascarius/navigation/issues"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-uglify": "~0.2.4"
+  }
+}

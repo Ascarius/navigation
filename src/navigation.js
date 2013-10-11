@@ -1,4 +1,4 @@
-(function ($, undefined) {
+(function ($, window, document, undefined) {
 
   "use strict";
 
@@ -100,8 +100,8 @@
 
       self.$body.on('click', self.options.navSelector, function (e) {
         var $this = $(e.currentTarget),
-            url = $this.prop('href'),
-            title = $this.prop('');
+            url = $this.attr('href'),
+            title = $this.attr('title') || null;
 
         if (e.shiftKey || e.ctrlKey || e.metaKey || e.which == 2) {
             return true;
@@ -109,7 +109,7 @@
 
         if ($this.is('a')) {
           e.preventDefault();
-          History.pushState(null, null, url);
+          History.pushState(null, title, url);
         }
 
       });
@@ -207,7 +207,6 @@
     saveContents: function (url, data) {
       var self = this,
           options = this.options,
-          $content,
           title;
 
       this.log('save', url);
@@ -251,8 +250,7 @@
 
     updateContents: function (url) {
       var self = this,
-          options = this.options,
-          $content;
+          options = this.options;
 
       this.log('update', url);
 
@@ -528,4 +526,4 @@
     return this;
   };
 
-})(window.jQuery);
+})(window.jQuery, window, window.document);
