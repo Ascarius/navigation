@@ -18,7 +18,6 @@
     this.initialized  = false;
     this.states       = {};
     this.$contents    = {};
-    this.$title       = $('title');
 
     $($.proxy(this.init, this));
     $(window).on('statechange', $.proxy(this.change, this));
@@ -214,10 +213,14 @@
       if (data !== undefined) {
 
         // Title
-        if (title = $('title', data).html()) {
-          this.setStateContent(url, 'title', title);
-        } else if (title = data.match('<title>(.*)</title>')) {
-          this.setStateContent(url, 'title', title[1]);
+        try {
+          if (title = $('title', data).html()) {
+            this.setStateContent(url, 'title', title);
+          } else if (title = data.match(/<title>(.*)<\/title>/i)) {
+            this.setStateContent(url, 'title', title[1]);
+          }
+        } catch (e) {
+          title = '';
         }
 
         // Contents
@@ -255,7 +258,7 @@
       this.log('update', url);
 
       // Title
-      this.$title.html(this.getStateContent(url, 'title'));
+      document.title = this.getStateContent(url, 'title');
 
       // Contents
       $.each(options.contents, function (key, content) {
@@ -526,4 +529,4 @@
     return this;
   };
 
-})(window.jQuery, window, window.document);
+})(window.jQuery, window, document);
