@@ -124,38 +124,42 @@
 
     change: function (url) {
 
+      if (!this.initialized || url == this.getStateUrl()) {
+        return;
+      }
+
       this.log('change', url);
-      this.$body.trigger('change.navigation', url);
+      this.$body.trigger('change.navigation', [url]);
 
       this.log('load', url);
-      this.$body.trigger('load.navigation', url);
+      this.$body.trigger('load.navigation', [url]);
 
       $.ajax({
         url: url,
         dataType: 'html',
         success: $.proxy(this.handler, this, url),
-        error: $.proxy(this.error, this, url)
+        error: $.proxy(this.error, this, url),
+        complete: $.proxy(this.complete, this, url)
       });
 
     },
 
-    handler: function (url, data, status, xhr) {
+    handler: function (url, data) {
       var stateData = this.buildContents(data);
 
       this.log('handle', url);
 
       this[url == this.getStateUrl() ? 'replaceState' : 'pushState'](stateData, stateData.title, url);
-
-      if (xhr) {
-        this.log('loaded', url);
-        this.$body.trigger('loaded.navigation', [url, data, status, xhr]);
-      }
-
     },
 
-    error: function (e, xhr, status, error) {
+    error: function (url, xhr, status, error) {
       this.log('error', arguments);
-      this.$body.trigger('error.navigation', [e, xhr, status, error]);
+      this.$body.trigger('error.navigation', [url, xhr, status, error]);
+    },
+
+    complete: function (url, xhr, status) {
+      this.log('loaded', url);
+      this.$body.trigger('loaded.navigation', [url, xhr, status]);
     },
 
     changed: function () {
@@ -346,6 +350,7 @@
       if (update) {
 
         this.log('update', key);
+        $content.trigger('update.navigation');
 
         if (typeof update == 'function') {
           update.call($content, html, key, content, updated);

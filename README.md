@@ -91,8 +91,16 @@ Events
 
 ### created.navigation
 
+### initialized.navigation
+
+### update.navigation
+
 ### updated.navigation
 
+### show.navigation
+
 ### shown.navigation
+
+### hide.navigation
 
 ### hidden.navigation
