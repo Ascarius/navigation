@@ -1,6 +1,6 @@
 {
   "name": "navigation",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "jQuery plugin on top of History.js ro rapidely implement full Ajax navigation.",
   "repository": {
     "type": "git",

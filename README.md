@@ -13,10 +13,6 @@ Default options
 
   Navigation.DEFAULTS = {
 
-    // Base URL
-    // - string
-    baseUrl : '/',
-
     // Nav selector
     // - string
     navSelector: '#menu a',
@@ -47,14 +43,19 @@ Default options
         // - function(string key, object content, callback created)
         create: 'append',
 
+        // Init method
+        // - undefined (default)
+        // - function(string key, object content, callback initialized)
+        init: undefined,
+
         // Update method
         // - undefined, true, 'fade' (default)
         // - 'html'
         // - 'text'
         // - 'prepend'
         // - 'append'
-        // - function(string key, object content, callback updated)
-        update: 'html',
+        // - function(string html, string key, object content, callback updated)
+        update: 'fade',
 
         // Show method
         // - undefined, true, 'fade' (default)
