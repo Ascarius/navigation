@@ -486,9 +486,9 @@
   // NAVIGATION PLUGIN DEFINITION
   // ============================
 
-  var old = $.fn.navigation;
+  var old = $.navigation;
 
-  $.fn.navigation = function (option) {
+  $.navigation = function (option) {
     var $this   = $(document.body),
         data    = $this.data('wxr.navigation'),
         options = typeof option == 'object' && option;
@@ -498,7 +498,7 @@
     }
   };
 
-  $.fn.navigation.Constructor = Navigation;
+  $.navigation.Constructor = Navigation;
 
 
   // NAVIGATION NO CONFLICT
