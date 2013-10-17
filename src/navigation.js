@@ -63,8 +63,6 @@
         // - undefined, true, 'fade' (default)
         // - 'html'
         // - 'text'
-        // - 'prepend'
-        // - 'append'
         // - function(string html, string key, object content, callback updated)
         update: 'fade',
 
@@ -360,14 +358,6 @@
               break;
             case 'text':
               $content.text(html);
-              updated();
-              break;
-            case 'prepend':
-              $content.prepend(html);
-              updated();
-              break;
-            case 'append':
-              $content.append(html);
               updated();
               break;
             default:
