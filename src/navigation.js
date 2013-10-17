@@ -20,7 +20,6 @@
     this.$contents    = {};
 
     $($.proxy(this.init, this));
-    $(window).on('statechange', $.proxy(this.changed, this));
   };
 
   Navigation.DEFAULTS = {
@@ -96,30 +95,30 @@
     },
 
     init: function () {
-      var self  = this;
+      this.log('init');
 
-      self.log('init');
+      $(window).on('statechange', $.proxy(this.changed, this));
 
-      self.$body.on('click', self.options.navSelector, function (e) {
-        var $this = $(e.currentTarget),
-            url = $this.attr('href');
-
-        if (e.shiftKey || e.ctrlKey || e.metaKey || e.which == 2) {
-            return true;
-        }
-
-        if ($this.is('a')) {
-          e.preventDefault();
-          self.change(url);
-        }
-
-      });
+      this.$body.on('click', this.options.navSelector, $.proxy(this.click, this));
 
       this.handler(window.location.href, document);
 
       this.initialized = true;
       this.log('initialized');
+    },
 
+    click: function (e) {
+      var $this = $(e.currentTarget),
+          url = $this.attr('href');
+
+      if (e.shiftKey || e.ctrlKey || e.metaKey || e.which == 2) {
+        return true;
+      }
+
+      if ($this.is('a')) {
+        e.preventDefault();
+        this.change(url);
+      }
     },
 
     change: function (url) {
@@ -180,10 +179,6 @@
       var url = this.getStateUrl(),
           options = this.options,
           $links;
-
-      if (!this.initialized) {
-        return;
-      }
 
       $context = $context || undefined;
       $links   = $context === undefined
@@ -254,10 +249,6 @@
     updateContents: function () {
       var self = this,
           options = this.options;
-
-      if (!this.initialized) {
-        return;
-      }
 
       this.log('update');
 
@@ -505,9 +496,9 @@
   // NAVIGATION PLUGIN DEFINITION
   // ============================
 
-  var old = $.navigation;
+  var old = $.fn.navigation;
 
-  $.navigation = function (option) {
+  $.fn.navigation = function (option) {
     var $this   = $(document.body),
         data    = $this.data('wxr.navigation'),
         options = typeof option == 'object' && option;
@@ -516,6 +507,8 @@
       $this.data('wxr.navigation', (data = new Navigation(options)));
     }
   };
+
+  $.fn.navigation.Constructor = Navigation;
 
 
   // NAVIGATION NO CONFLICT
