@@ -222,20 +222,29 @@
               $currentContent = self.getContentElement(key) || $(selector),
               $newContent     = $(selector, data);
 
-          // Set content
+          // Content found
           if ($newContent.length) {
-            if (!$currentContent.length) {
+
+            // Content doesn't exist
+            if ($currentContent.length === 0) {
+
               // Create
               $currentContent = self._createContent(key, content, $newContent);
+
+              // Init
+              self._initContent(key, content, $currentContent);
+
+            } else if (!self.initialized) {
+
+              // Init
+              self._initContent(key, content, $currentContent);
+
             }
 
-            // Init
-            self._initContent(key, content, $currentContent);
+            // Store content
+            self.setContentElement(key, $currentContent);
 
-            if (!self.hasContentElement(key)) {
-              self.setContentElement(key, $currentContent);
-            }
-
+            // Store value
             stateData[key] = $newContent.html();
           }
         });
