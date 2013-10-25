@@ -4,6 +4,14 @@ module.exports = function (grunt) {
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
+    jshint: {
+      options: {
+        boss: true
+      },
+      files: {
+        src: ['src/<%= pkg.name %>.js']
+      }
+    },
     uglify: {
       dist: {
         options: {
@@ -16,8 +24,10 @@ module.exports = function (grunt) {
     }
   });
 
+  grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-uglify');
 
   grunt.registerTask('default', ['uglify']);
+  grunt.registerTask('test', ['jshint']);
 
 };

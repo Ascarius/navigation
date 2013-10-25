@@ -1,6 +1,6 @@
 {
   "name": "navigation",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "jQuery plugin on top of History.js ro rapidely implement full Ajax navigation.",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "grunt": "~0.4.1",
-    "grunt-contrib-uglify": "~0.2.4"
+    "grunt-contrib-uglify": "~0.2.4",
+    "grunt-contrib-jshint": "~0.7.0"
   }
 }

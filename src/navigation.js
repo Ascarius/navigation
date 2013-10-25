@@ -6,21 +6,27 @@
     return;
   }
 
+  // SHARED VARS
+  // ===========
+
+  var $window = $(window),
+      $body   = $(document.body);
+
 
   // NAVIGATION CLASS DEFINITION
   // ===========================
 
   function Navigation (options) {
-    this.$window     = $(window);
-    this.$body       = $(document.body);
-    this.options     = $.extend({}, Navigation.DEFAULTS, options);
-
+    this.options      = $.extend({}, Navigation.DEFAULTS, options);
     this.initialized  = false;
-    this.states       = {};
+
+    // Contents' elements
     this.$contents    = {};
+    // Contents discarded for next update
+    this.discarded    = {};
 
     $($.proxy(this.init, this));
-  };
+  }
 
   Navigation.DEFAULTS = {
 
@@ -89,15 +95,15 @@
     log: function () {
       if (this.options.debug && window.console && typeof console.log == 'function') {
         console.log.apply(console, arguments);
-      };
+      }
     },
 
     init: function () {
-      this.log('init');
+      this.log('initialization');
 
-      $(window).on('statechange', $.proxy(this.changed, this));
+      $window.on('statechange', $.proxy(this.changed, this));
 
-      this.$body.on('click', this.options.navSelector, $.proxy(this.click, this));
+      $body.on('click', this.options.navSelector, $.proxy(this.click, this));
 
       this.handler(window.location.href, document);
 
@@ -126,10 +132,10 @@
       }
 
       this.log('change', url);
-      this.$body.trigger('change.navigation', [url]);
+      $body.trigger('change.navigation', [url]);
 
       this.log('load', url);
-      this.$body.trigger('load.navigation', [url]);
+      $body.trigger('load.navigation', [url]);
 
       $.ajax({
         url: url,
@@ -142,21 +148,23 @@
     },
 
     handler: function (url, data) {
-      var stateData = this.buildContents(data);
+      var stateData;
 
       this.log('handle', url);
+
+      stateData = this.buildContents(data);
 
       this[url == this.getStateUrl() ? 'replaceState' : 'pushState'](stateData, stateData.title, url);
     },
 
     error: function (url, xhr, status, error) {
       this.log('error', arguments);
-      this.$body.trigger('error.navigation', [url, xhr, status, error]);
+      $body.trigger('error.navigation', [url, xhr, status, error]);
     },
 
     complete: function (url, xhr, status) {
       this.log('loaded', url);
-      this.$body.trigger('loaded.navigation', [url, xhr, status]);
+      $body.trigger('loaded.navigation', [url, xhr, status]);
     },
 
     changed: function () {
@@ -170,7 +178,7 @@
       this.updateContents();
 
       this.log('changed', url);
-      this.$body.trigger('changed.navigation', [url]);
+      $body.trigger('changed.navigation', [url]);
     },
 
     updateNav: function ($context) {
@@ -179,9 +187,8 @@
           $links;
 
       $context = $context || undefined;
-      $links   = $context === undefined
-        ? $(this.options.navSelector)
-        : $('a', $context).filter(this.options.navSelector);
+      $links   = $context === undefined ?
+        $(this.options.navSelector) : $('a', $context).filter(this.options.navSelector);
 
       if (typeof options.updateNav == 'function') {
         options.updateNav.call($links, url);
@@ -220,21 +227,24 @@
         $.each(options.contents, function (key, content) {
           var selector        = typeof content == 'string' ? content : content.selector,
               $currentContent = self.getContentElement(key) || $(selector),
+              contentExists   = $currentContent.length !== 0,
               $newContent     = $(selector, data);
 
           // Content found
           if ($newContent.length) {
 
             // Content doesn't exist
-            if ($currentContent.length === 0) {
+            if (!contentExists) {
 
               // Create
               $currentContent = self._createContent(key, content, $newContent);
 
-              // Init
-              self._initContent(key, content, $currentContent);
+              // Discard next update
+              self.setContentDiscarded(key, true);
 
-            } else if (!self.initialized) {
+            }
+
+            if (!contentExists || !self.initialized) {
 
               // Init
               self._initContent(key, content, $currentContent);
@@ -285,7 +295,6 @@
       if (create) {
 
         this.log('create', key);
-        $content.hide();
 
         if (typeof create == 'function') {
           create.call($content, key, content, created);
@@ -295,7 +304,7 @@
             if ($newParent.attr('id')) {
               $currentParent = $('#' + $newParent.attr('id'));
             } else if ($newParent.is('body')) {
-              $currentContent = $('body');
+              $currentContent = $body;
             }
           }
           if ($currentParent && $currentParent.length) {
@@ -326,7 +335,7 @@
       var self = this,
           initialized = function () {
             self.log('initialized', key);
-            $content.trigger('initialized.navigation')
+            $content.trigger('initialized.navigation');
           };
       if (typeof content.init == 'function') {
         self.log('initialize', key);
@@ -347,36 +356,48 @@
 
       if (update) {
 
-        this.log('update', key);
-        $content.trigger('update.navigation');
+        if (!this.isContentDiscarded(key)) {
 
-        if (typeof update == 'function') {
-          update.call($content, html, key, content, updated);
-        } else {
-          switch (update) {
-            case true:
-            case 'fade':
-              $content.fadeTo(400, 0, function () {
+          this.log('update', key);
+          $content.trigger('update.navigation');
+
+          if (typeof update == 'function') {
+            update.call($content, html, key, content, updated);
+          } else {
+            switch (update) {
+              case true:
+              case 'fade':
+                $content.fadeTo(400, 0, function () {
+                  $content.html(html);
+                  $content.fadeTo(400, 1, updated);
+                });
+                break;
+              case 'html':
                 $content.html(html);
-                $content.fadeTo(400, 1, updated);
-              });
-              break;
-            case 'html':
-              $content.html(html);
-              updated();
-              break;
-            case 'text':
-              $content.text(html);
-              updated();
-              break;
-            default:
-              throw new Error('update method "'+update+'" is not supported');
+                updated();
+                break;
+              case 'text':
+                $content.text(html);
+                updated();
+                break;
+              default:
+                throw new Error('update method "'+update+'" is not supported');
+            }
           }
+
+        } else {
+
+          // Remove discard
+          this.setContentDiscarded(key, false);
+
         }
+
+      } else {
+
+        this._showContent(key, content);
 
       }
 
-      this._showContent(key, content);
     },
 
     _showContent: function (key, content) {
@@ -487,6 +508,15 @@
 
     hasContentElement: function (key) {
       return this.$contents[key] !== undefined;
+    },
+
+    isContentDiscarded: function (key) {
+      return this.discarded[key];
+    },
+
+    setContentDiscarded: function (key, discarded) {
+      this.discarded[key] = discarded;
+      return this;
     }
 
   };
